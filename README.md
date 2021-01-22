@@ -8,8 +8,8 @@
 
 ### 動作環境
 
-Python 3.7.3(64bit)
-[requests](https://requests-docs-ja.readthedocs.io/en/latest/)
+- Python 3.7.3(64bit)
+- [requests](https://requests-docs-ja.readthedocs.io/en/latest/)
 
 ### 実行手順
 
@@ -17,3 +17,4 @@ Python 3.7.3(64bit)
 2. cbjg.pyを実行
 3. 表示に従って認証情報、プロジェクト名を入力
 4. BlueprintのJSONが出力
+
