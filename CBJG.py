@@ -5,7 +5,8 @@
 #
 # Usage:
 # ガイダンスに従いパラメータを入力(username/password or api-key , projectname)
-# 実行ディレクトリにBluepurintのjsonが生成
+# Mode指定(Blueprints, Machines)
+# 実行ディレクトリにjsonが生成
 # ------------------------------------------------------------------------------------------------
 
 import json
@@ -16,15 +17,20 @@ import requests
 HOST = 'https://console.cloudendure.com'
 headers = {'Content-Type': 'application/json'}
 endpoint = '/api/latest/{}'
-FileName = './{}-blueprints.json'
+FileName = './{}-{}.json'
 
 # ------------------------------------------------------------------------------------------------
 
 # ログインパラメータ要求クラスの作成
 
-
 def ce_getparam():
-    input1st = input('Please enter username or api-token :')
+
+    while True:  # フォーマットチェック
+        input1st = input('Please enter username or api-token :')
+        if '@' in input1st or len(input1st) == 79:  # E-Mail or API Token
+            break
+        else:
+            print('Please retype the correct string.')
 
     if '@' in input1st:
         ce_username = input1st
@@ -39,7 +45,6 @@ def ce_getparam():
 # ------------------------------------------------------------------------------------------------
 #　認証実行クラスの作成
 
-
 def ce_login():
     session = {}
     r = requests.post(HOST + endpoint.format('login'),
@@ -52,11 +57,10 @@ def ce_login():
     session = {'session': r.cookies['session']}
     headers['X-XSRF-TOKEN'] = r.cookies['XSRF-TOKEN']
 
-    return session, headers  # sessionとheadersを戻り値
+    return session, headers  # sessionとheadersを戻り値へ
 
 # ------------------------------------------------------------------------------------------------
 # ProjectID取得クラスの作成
-
 
 def ce_getProjectID(projectname):
     print('Getting ProjectID from you can access projects...')
@@ -71,12 +75,32 @@ def ce_getProjectID(projectname):
     projects = json.loads(r.content)['items']  # jsonパースでprojectsに格納(itemsの中身)
     for project in projects:
         if project['name'] == projectname:
-            return project['id']
+            return project['id'] # 戻り値
+
+# ------------------------------------------------------------------------------------------------
+# リスト取得API実行クラスの作成
+
+def run_list_api():
+    print(('Get {}...').format(get_info_type))
+    r = requests.get(HOST + endpoint.format('projects/{}/{}').format(
+        project_id, get_info_type), headers=ce_sessiondata[1], cookies=ce_sessiondata[0])
+    if r.status_code != 200:
+        print(('Failed to fetch {}}.').format(get_info_type))
+        sys.exit(1)
+    return r # 戻り値
+
+# ------------------------------------------------------------------------------------------------
+# ファイル保存クラスの作成
+
+def get_list_data():
+    with open(FileName.format(var_pjname, get_info_type), 'w', encoding='utf-8') as f:
+        f.write(str(list_data.json()['items']))
+    print('Finish.' + ' Saved to ' + str(FileName.format(var_pjname, get_info_type)))
 
 # ------------------------------------------------------------------------------------------------
 
 
-# なんとなく入れる
+# タイトル
 title = """\
 
 ------------------------------------------
@@ -102,18 +126,28 @@ ce_sessiondata = ce_login()
 var_pjname = input('Please enter CloudEndure Project name :')
 
 # ProjectIDを取得
-project_id = ce_getProjectID(var_pjname)  # project_id = project['id']
+# project_id = project['id']
+project_id = ce_getProjectID(var_pjname)
 
-# blueprintsを取得
-print('Get Blueprints...')
-r = requests.get(HOST + endpoint.format('projects/{}/blueprints').format(
-    project_id), headers=ce_sessiondata[1], cookies=ce_sessiondata[0])
-if r.status_code != 200:
-    print('Failed to fetch blueprints.')
-    sys.exit(1)
+# ModeIDを取得
+while True:
+    mode_id = int(
+        input('Mode Select (1 = Blueprints, 2 = Machines（Include Replication Configurations)) :'))
+    if mode_id != 0 and mode_id <= 2:
+        break
+    else:
+        print('Please retype the correct value.')
+
+if mode_id == 1:
+    get_info_type = 'blueprints'
+if mode_id == 2:
+    get_info_type = 'machines'
+
+# リスト取得API実行
+# list_data = r
+list_data = run_list_api()
 
 # jsonファイルに保存
-with open(FileName.format(var_pjname), 'w', encoding='utf-8') as f:
-    f.write(str(r.json()['items']))
-print('Finish.' + ' Saved to ' + str(FileName.format(var_pjname)))
+get_list_data()
+
 exit()

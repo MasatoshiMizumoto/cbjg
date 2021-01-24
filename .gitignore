@@ -4,3 +4,4 @@ lib/
 *.cfg
 .DS_Store
 .vscode/
+*.json
